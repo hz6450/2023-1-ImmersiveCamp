@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text Translation</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Text Translation</h1>
+
+    <script>
+        function translateText() {
+            // 사용자로부터 입력 값을 받음
+            const text = prompt("Enter a text to detect its language and translate to English:");
+
+            // 번역 API 요청을 보낼 URL
+            const apiUrl = "https://translation.googleapis.com/language/translate/v2?key=AIzaSyDyAB8gC-lkQhvHwlA3gDfhHkhxdDnszT8";
+
+            // 요청 데이터
+            const data = {
+                q: text,
+                source: "auto",
+                target: "en"
+            };
+
+            // 번역 API에 POST 요청을 보냄
+            $.post(apiUrl, data, function(response) {
+                // 번역 결과 출력
+                console.log("The language of the text is:", response.data.translations[0].detectedSourceLanguage);
+                console.log("The translated text is:", response.data.translations[0].translatedText);
+            });
+        }
+
+        translateText();
+    </script>
+</body>
+</html>
