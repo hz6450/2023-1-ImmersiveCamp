@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>운동 기록 입력</title>
+</head>
+    <h1>운동 기록 입력</h1>
+<body>
+    <form action="save_exercise.php" method="post">
+        <label for="exercise_date">운동 일자</label>
+        <input type="date" id="exercise_date" name="exercise_date" required>
+        <br><br>
+        <label for="exercise_name">운동 명</label>
+        <input type="text" id="exercise_name" name="exercise_name" required>
+        <br><br>
+        <input type="submit" value="저장">
+    </form>
+</body>
+</html>
