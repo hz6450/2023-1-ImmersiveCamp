@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>번역 및 감정 분석 챗봇</title>
+  <style>
+    #container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #output {
+      width: 400px;
+      height: 800px;
+      border: 1px solid black;
+      padding: 10px;
+      margin-bottom: 20px;
+      overflow: auto;
+    }
+    #input {
+      width: 400px;
+    }
+    #stats {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="output"></div>
+    <input id="input" type="text" placeholder="문장을 입력하세요.">
+    <div id="stats">
+      <p>긍정 문장 개수: <span id="positiveCount">0</span></p>
+      <p>부정 문장 개수: <span id="negativeCount">0</span></p>
+    </div>
+  </div>
+  <script>
+    var positive = 0;
+    var negative = 0;
+
+    async function analyzeSentiment(text) {
+      const apiKey = 'AIzaSyBNuoQJbS6kLVrfTKPqznAqBzQodgnigkw'; // Replace with your Google Cloud API key
+      const url = `https://language.googleapis.com/v1/documents:analyzeSentiment?key=${apiKey}`;
+
+      const body = JSON.stringify({
+        document: {
+          type: 'PLAIN_TEXT',
+          content: text,
+        },
+      });
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: body,
+        });
+
+        const data = await response.json();
+
+        const sentiment = data.documentSentiment;
+        console.log('Document sentiment:');
+        console.log(`  Score: ${sentiment.score}`);
+        console.log(`  Magnitude: ${sentiment.magnitude}`);
+
+        const sentences = data.sentences;
+        sentences.forEach((sentence, index) => {
+          console.log(`Sentence ${index + 1}: ${sentence.text.content}`);
+          console.log(`  Score: ${sentence.sentiment.score}`);
+          console.log(`  Magnitude: ${sentence.sentiment.magnitude}`);
+        });
+
+        return sentiment.score;
+      } catch (error) {
+        console.error('감정 분석 실패:', error);
+        throw error;
+      }
+    }
+
+    function detectLanguage(text) {
+      const apiKey = 'AIzaSyBNuoQJbS6kLVrfTKPqznAqBzQodgnigkw'; // Google Cloud Translation API의 API 키를 넣어야 합니다.
+      const url = `https://translation.googleapis.com/language/translate/v2/detect?key=${apiKey}`;
+
+      return fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: text,
+        }),
+      })
+        .then(response => response.json())
+        .then(data => data.data.detections[0][0].language)
+        .catch(error => {
+          console.error('언어 감지 실패:', error);
+          throw error;
+        });
+    }
+
+    async function translateText(text, targetLanguage) {
+      const apiKey = 'AIzaSyBNuoQJbS6kLVrfTKPqznAqBzQodgnigkw'; // Google Cloud Translation API의 API 키를 넣어야 합니다.
+      const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
+
+      return fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: text,
+          target: targetLanguage,
+        }),
+      })
+        .then(response => response.json())
+        .then(data => data.data.translations[0].translatedText)
+        .catch(error => {
+          console.error('번역 실패:', error);
+          throw error;
+        });
+    }
+
+    async function chatbot() {
+      const outputElement = document.getElementById('output');
+      const inputElement = document.getElementById('input');
+      const positiveCountElement = document.getElementById('positiveCount');
+      const negativeCountElement = document.getElementById('negativeCount');
+
+      inputElement.addEventListener('keyup', async function(event) {
+        if (event.key === 'Enter') {
+          const text = inputElement.value;
+
+          if (text === 'q') {
+            return;
+          }
+
+          const language = await detectLanguage(text);
+
+          let translatedText = text;
+
+          if (language !== 'en') {
+            try {
+              translatedText = await translateText(text, 'en');
+            } catch (error) {
+              console.error('번역 실패:', error);
+            }
+          }
+
+          const sentiment = await analyzeSentiment(text);
+
+          outputElement.innerHTML += `<p>입력 문장: ${text}</p>`;
+          outputElement.innerHTML += `<p>이 문장은: ${language}</p>`;
+          outputElement.innerHTML += `<p>영어로 번역하면: ${translatedText}</p>`;
+
+          if (sentiment > 0) {
+            outputElement.innerHTML += `<p>긍정 문장입니다.</p>`;
+            positive++;
+            positiveCountElement.textContent = positive.toString();
+          } else if (sentiment < 0) {
+            outputElement.innerHTML += `<p>부정 문장입니다.</p>`;
+            negative++;
+            negativeCountElement.textContent = negative.toString();
+
+            if (negative >= 10) {
+              alert("당신의 감정이 비를 맞고 있어요");
+              return;
+            }
+          } else {
+            outputElement.innerHTML += `<p>중립 문장입니다.</p>`;
+          }
+        
+          inputElement.value = '';
+        }
+      });
+    }
+
+    chatbot();
+  </script>
+</body>
+</html>

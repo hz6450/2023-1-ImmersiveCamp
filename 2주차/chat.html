@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatBot</title>
+</head>
+<body>
+    <h1>ChatBot</h1>
+    <!-- 챗봇 결과나오는곳 -->
+    <div id="chat-container"></div>  
+    <input type="text" id="user-input" placeholder="메시지 입력..." autofocus>
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById("user-input")
+        userInput.addEventListener('keydown',handleUserInput);
+        function handleUserInput(event) {
+            if(event.key === 'Enter'){
+                const input = userInput.value;
+                showUserMessage(input);
+                respondToUser(input);
+                userInput.value = '';
+            }
+        }
+
+        // 챗봇 메세지 보여주기
+        function showBotMessage(message) {
+            const messageElement = document.createElement('p');
+            messageElement.classList.add('bot-message');
+            messageElement.textContent = message;
+            chatContainer.appendChild(messageElement);
+        }
+
+        function showUserMessage(message){
+            const messageElement = document.createElement('p');
+            messageElement.classList.add('user-message');
+            messageElement.textContent = message;
+            chatContainer.appendChild(messageElement);
+        }
+
+        function respondToUser(input){
+            let response = '';
+            if(input.includes('안녕')){
+                response = "안녕하세요";
+            }
+            else if (input.includes('오늘날씨')){
+                fetchWeatherData();
+            } else {
+                response = "죄송합니다 잘 이해하지 못했어요";
+                showBotMessage(response);
+            }
+        }
+        function fetchWeatherData() {
+    const apiKey = "jAFFlx51Qd1fBjoSYPOZd%2FtX9ULrQgGXuK%2BlyBqcJO1PUhUc1%2B7peLNFVORrtLnTSgEA2oJ8S5S7vdPas52z6g%3D%3D";
+    const baseDate = getFormattedDate();
+    const url = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${apiKey}&pageNo=1&numOfRows=1000&dataType=XML&base_date=${baseDate}&base_time=0500&nx=55&ny=127`;
+
+    fetch(url)
+        .then(response => response.text())
+        .then(data => {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data, "text/xml");
+            const itemList = xmlDoc.getElementsByTagName("item");
+            let popValue;
+
+            for (let i = 0; i < itemList.length; i++) {
+                const category = itemList[i].getElementsByTagName("category")[0].textContent;
+                if (category === "POP") {
+                    popValue = itemList[i].getElementsByTagName("fcstValue")[0].textContent;
+                    break;
+                }
+            }
+
+            const weather = getWeatherDescription(popValue);
+            const message = `오늘의 강수확률은 ${popValue}% 입니다`;
+            showBotMessage(message);
+        })
+        .catch(error => {
+            console.log("Error fetching weather data:", error);
+            const errorMessage = "날씨 정보를 가져오는 중에 오류가 발생했습니다.";
+            showBotMessage(errorMessage);
+        });
+}
+
+        function getFormattedDate() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
+        }
+
+        function getWeatherDescription(fcstValue) {
+            // Add your own logic to map fcstValue to a weather description
+            // This is just an example mapping, you can modify it based on your requirements
+            if (fcstValue >= 30) {
+                return "맑음";
+            } else if (fcstValue >= 20) {
+                return "구름 조금";
+            } else if (fcstValue >= 10) {
+                return "구름 많음";
+            } else {
+                return "흐림";
+            }
+        }
+    </script>
+    <style>
+        .bot-message{
+            color: blue;
+        }
+        .user-message{
+            color: green;
+        }
+    </style>
+</body>
+</html>
