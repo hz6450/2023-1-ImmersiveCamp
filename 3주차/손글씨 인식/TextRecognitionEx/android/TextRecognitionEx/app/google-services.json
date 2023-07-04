@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "716161016732",
+    "firebase_url": "https://textrecognitionex-91f25.firebaseio.com",
+    "project_id": "textrecognitionex-91f25",
+    "storage_bucket": "textrecognitionex-91f25.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716161016732:android:816ef583014a8610cd1e59",
+        "android_client_info": {
+          "package_name": "net.npaka.textrecognitionex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "716161016732-8kp0bq4l1gjs73njl2804p372uec9p1q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "net.npaka.textrecognitionex",
+            "certificate_hash": "2232614810c66c5092e4f2afbbba28f98dd4a6a7"
+          }
+        },
+        {
+          "client_id": "716161016732-3ts8k4dkac7c0je2k9i1p89mu9q4cp9c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZ8z4dd47HrX0KqPCPMllnEQ7wCG2dna4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "716161016732-3ts8k4dkac7c0je2k9i1p89mu9q4cp9c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
