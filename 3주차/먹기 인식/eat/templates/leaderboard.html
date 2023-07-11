@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaderboard</title>
+</head>
+<body>
+    <h1>Leaderboard</h1>
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>Count</th>
+            <th>Timestamp</th>
+        </tr>
+        {% for rank, count, timestamp in count_timestamp_list %}
+        <tr>
+            <td>{{ rank }}</td>
+            <td>{{ count }}</td>
+            <td>{{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
