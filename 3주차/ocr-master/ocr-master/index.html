@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="theme-color" content="#FFF"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta property="og:url" content="https://victorribeiro.com/ocr" />
+	<meta property="og:type" content="Article" />
+	<meta property="og:title" content="OCR - Tesseract" />
+	<meta property="og:author" content="Victor Ribeiro" />
+	<meta property="og:description" content="OCR with Tesseract" />
+	<meta property="og:image" content="https://victorribeiro.com/ocr/favicon.png" />
+	<meta property="og:image:width" content="512" />
+	<meta property="og:image:height" content="512" />
+	<meta name="Description" content="OCR with Tesseract">
+	<title>OCR</title>
+	<link rel="manifest" href="manifest.json" />
+	<link rel="stylesheet" href="css/main.css" />
+	<link rel="icon" href="favicon.png" sizes="256x256"/>
+	<link rel="apple-touch-icon" href="favicon.png" />
+	<script src='https://unpkg.com/tesseract.js@2.1.4/dist/tesseract.min.js'></script>
+	<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+<section id="main">
+	<div id="toolbar">
+		<div>
+			<input type="file" id="import" accept="image/*"></input>
+		</div>
+		<div>
+			<select id="lang">
+				<option value='eng' selected> English </option>
+				<option value='kor'> Korean </option>
+				<!-- Other language options... -->
+			</select>
+		</div>
+	</div>
+	<div id="result">
+		<div id="preview"></div>
+		<div id="recognizedText" contenteditable="true"></div>
+		<input type="text" id="name" placeholder="Name"></input>
+		<button id="saveBtn">Save</button>
+
+		<button id="newPageBtn">Go to New Page</button>
+
+	</div>
+</section>
+
+<script src="js/main.js"></script>
+<script>
+	const newPageBtn = document.getElementById('newPageBtn');
+	newPageBtn.addEventListener('click', () => {
+		window.location.href = 'newpage.html'; // 새 페이지의 URL을 설정합니다.
+	});
+
+	const saveToFirestore = () => {
+		const nameInput = document.getElementById('name');
+		const name = nameInput.value;
+
+		if (name.trim() === '') {
+			alert('Please enter a name.');
+			return;
+		}
+
+		const text = getOCRText(); // OCR 결과 텍스트 가져오는 함수 호출
+
+		if (text.trim() === '') {
+			alert('No OCR results to save.');
+			return;
+		}
+
+		// Extract the desired information from the text
+		const phoneNumberRegex = /\d{3}-\d{4}-\d{4}/g; // Phone number format regex pattern
+		const emailRegex = /\S+@\S+\.\S+/g; // Email format regex pattern
+
+		const phoneNumberMatches = text.match(phoneNumberRegex);
+		const emailMatches = text.match(emailRegex);
+
+		let phoneNumber = '';
+		let email = '';
+
+		if (phoneNumberMatches) {
+			phoneNumber = phoneNumberMatches[0]; // First extracted phone number
+		}
+
+		if (emailMatches) {
+			email = emailMatches[0]; // First extracted email
+		}
+
+		// Create a new contact object with the extracted information
+		const contact = {
+			givenName: name,
+			phoneNumbers: [
+				{
+					value: phoneNumber,
+					type: 'home', // Modify the type if necessary
+				},
+			],
+			emailAddresses: [
+				{
+					value: email,
+					type: 'home', // Modify the type if necessary
+				},
+			],
+		};
+
+		// Send the contact data to Google Contacts API
+		$.ajax({
+			url: 'https://www.google.com/m8/feeds/contacts/default/full',
+			type: 'POST',
+			data: formatContactXML(contact),
+			headers: {
+				'Content-Type': 'application/atom+xml',
+				'GData-Version': '3.0',
+				Authorization: `AIzaSyB-jNrM59JtrKt4ZPg4D33h_DJmWXCQwjY`,
+			},
+			success: function (data) {
+				console.log('Contact added to Google Contacts');
+				alert('Contact added to Google Contacts!');
+			},
+			error: function (error) {
+				console.error('Error adding contact to Google Contacts:', error);
+				alert('Failed to add contact to Google Contacts.');
+			},
+		});
+	};
+
+	// Helper function to format the contact object as XML
+	const formatContactXML = (contact) => {
+		const xml = `
+			<entry xmlns="http://www.w3.org/2005/Atom"
+				xmlns:gd="http://schemas.google.com/g/2005">
+				<category scheme="http://schemas.google.com/g/2005#kind"
+					term="http://schemas.google.com/contact/2008#contact"/>
+				<gd:name>
+					<gd:givenName>${contact.givenName}</gd:givenName>
+				</gd:name>
+				<gd:phoneNumber rel="${contact.phoneNumbers[0].type}">
+					${contact.phoneNumbers[0].value}
+				</gd:phoneNumber>
+				<gd:email rel="${contact.emailAddresses[0].type}"
+					address="${contact.emailAddresses[0].value}"/>
+			</entry>
+		`;
+
+		return xml;
+	};
+
+	const saveButton = document.getElementById('saveBtn');
+	saveButton.addEventListener('click', () => {
+		saveToFirestore(); // Call the function to save to Firestore
+	});
+</script>
+</body>
+</html>
