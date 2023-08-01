@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Stream</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column; /* 세로 방향으로 요소를 배치 */
+        }
+
+        #main-container {
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #ccc; /* 주 영역에 border 추가 */
+            border-radius: 10px;
+            overflow: hidden; /* 내용이 넘치는 경우 border를 넘지 않도록 설정 */
+            margin-bottom: 20px;
+        }
+
+        #top-text {
+            font-size: 24px;
+            color: white;
+            background-color: #333;
+            padding: 10px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        #video-container {
+            position: relative;
+            width: 640px; /* 비디오 가로 크기 조절 */
+            height: 360px; /* 비디오 세로 크기 조절 */
+        }
+
+        #video-stream {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #bottom-text {
+            font-size: 16px;
+            color: white;
+            background-color: #333;
+            padding: 10px;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="main-container">
+        <div id="top-text">기말프로젝트</div>
+        <div id="video-container">
+            <img id="video-stream" src="{{ url_for('video_feed') }}" />
+        </div>
+        <div id="bottom-text">
+            <div>몰입형 12분반</div>
+            <div>2019243114 이해준</div>
+        </div>
+    </div>
+</body>
+</html>

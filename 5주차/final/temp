@@ -1,0 +1,118 @@
+import cv2
+import mediapipe as mp
+import numpy as np
+from flask import Flask, render_template, Response
+
+app = Flask(__name__)
+
+# 인식하는 손 갯수
+max_num_hands = 2
+
+gesture = {
+    0: 'fist', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+    6: 'six', 7: 'rock', 8: 'spiderman', 9: 'yeah', 10: 'ok',
+}
+
+# MediaPipe 손 모델
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+hands = mp_hands.Hands(
+    max_num_hands=max_num_hands,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5)
+
+# 제스처 인식 모델
+file = np.genfromtxt('gesture_train.csv', delimiter=',', dtype=np.float32)
+angle = file[:, :-1]
+label = file[:, -1]
+knn = cv2.ml.KNearest_create()
+knn.train(angle, cv2.ml.ROW_SAMPLE, label)
+
+
+# Initialize brush properties
+brush_color = (0, 0, 255)  # 빨간색 (BGR 형식)
+brush_thickness = 5
+
+# Function to process frames and perform gesture recognition
+def process_gesture():
+    global brush_color, brush_thickness  # 전역 변수로 선언
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+    while cap.isOpened():
+        ret, img = cap.read()
+        if not ret:
+            continue
+
+        img = cv2.flip(img, 1)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        result = hands.process(img)
+
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        if result.multi_hand_landmarks is not None:
+            for res in result.multi_hand_landmarks:
+                joint = np.zeros((21, 3))
+                for j, lm in enumerate(res.landmark):
+                    joint[j] = [lm.x, lm.y, lm.z]
+
+                # 제스처 인식
+                data = np.array([angle], dtype=np.float32)  # data의 데이터 타입을 np.float32로 변환
+                data = data.reshape(1, -1)  # data 배열의 형태를 2차원으로 수정
+                ret, results = knn.findNearest(data, 3)
+                idx = int(results[0][0])
+
+                # 'five' 제스처일 때만 그림을 그리도록 함
+                if idx == 5:
+                    # 손 위치(왼손 또는 오른손) 판단
+                    x_center = int(np.mean([lm.x * img.shape[1] for lm in res.landmark]))
+                    if x_center < img.shape[1] // 2:  # 왼손
+                        cv2.putText(img, text='왼손', org=(10, 30), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
+
+                        # 브러시 색상 및 두께 선택 표시
+                        cv2.putText(img, text='브러시 색상: 빨간색', org=(10, 60), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
+                        cv2.putText(img, text='브러시 두께: 5', org=(10, 90), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
+
+                        # 브러시 속성 변경을 위한 제스처 확인
+                        if res.landmark[8].y > res.landmark[7].y:  # 엄지손가락이 위로 향할 때
+                            brush_color = (0, 0, 255)  # 빨간색으로 브러시 색상 변경 (BGR 형식)
+                        elif res.landmark[8].y < res.landmark[7].y:  # 엄지손가락이 아래로 향할 때
+                            brush_color = (255, 0, 0)  # 파란색으로 브러시 색상 변경 (BGR 형식)
+
+                        if res.landmark[4].y > res.landmark[3].y:  # 엄지가 위로 향할 때
+                            brush_thickness = 5  # 브러시 두께 5로 설정
+                        elif res.landmark[4].y < res.landmark[3].y:  # 엄지가 아래로 향할 때
+                            brush_thickness = 10  # 브러시 두께 10으로 설정
+
+                    else:  # 오른손
+                        # 오른손 위치를 오른쪽 상단에 텍스트로 표시
+                        cv2.putText(img, text='오른손', org=(img.shape[1] - 150, 30), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2)
+
+                    # 손의 관절 점 표시는 주석 처리
+                    # mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
+
+                    # 브러시 스트로크 그리기
+                    if idx == 5:  # 'five' 제스처일 때만 브러시 스트로크를 그림
+                        for j, lm in enumerate(res.landmark):
+                            x, y = int(lm.x * img.shape[1]), int(lm.y * img.shape[0])
+                            if j > 0:
+                                prev_x, prev_y = int(res.landmark[j - 1].x * img.shape[1]), int(res.landmark[j - 1].y * img.shape[0])
+                                cv2.line(img, (prev_x, prev_y), (x, y), brush_color, brush_thickness)
+
+        _, frame = cv2.imencode('.jpg', img)
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame.tobytes() + b'\r\n')
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')  # Assuming you have an HTML template for displaying the video feed
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(process_gesture(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == '__main__':
+    app.run(debug=True)
